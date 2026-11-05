@@ -1,0 +1,9 @@
+<Bindings>
+  <Binding name="LOCALDICTATION_RECORDING" header="LOCALDICTATION">LocalDictation_Recording()</Binding>
+  <Binding name="LOCALDICTATION_PROCESSING">LocalDictation_Processing()</Binding>
+  <Binding name="LOCALDICTATION_PREPARE">LocalDictation_Prepare()</Binding>
+  <Binding name="LOCALDICTATION_SEND">LocalDictation_Send()</Binding>
+  <Binding name="LOCALDICTATION_FAILED">LocalDictation_Failed()</Binding>
+  <Binding name="LOCALDICTATION_NEXT">LocalDictation_NextChannel()</Binding>
+  <Binding name="LOCALDICTATION_CLOSE">LocalDictation_Close()</Binding>
+</Bindings>

@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: Local Dictation
+## Notes: Preview local Mac controller dictation before sending.
+## Author: Local Demo
+## Version: 0.1.0
+## SavedVariables: LocalDictationDB
+LocalDictation.lua
+Bindings.xml

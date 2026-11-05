@@ -1,0 +1,29 @@
+# macOS rules adapted from https://www.toptal.com/developers/gitignore/api/macos
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon[[:cntrl:]]
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+*.icloud
+
+# Swift and macOS build output
+.build/
+.build-cache/
+DerivedData/
+/Controller Speech.app/
+*.zip
+
+# Local GitHub credential
+/git_token
