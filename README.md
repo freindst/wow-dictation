@@ -1,6 +1,6 @@
 # Controller Speech + Local Dictation addon
 
-> **Steam Deck / Linux:** a prototype helper for WoW under Proton is in [`deck/`](deck/README.md). The addon is shared; it also accepts the Deck helper's Ctrl-Shift-F6…F10 signal keys.
+> **Steam Deck / Linux:** an untested prototype helper for WoW under Proton is on the [`dictation-panel-hotkeys-deck`](https://github.com/freindst/wow-dictation/tree/dictation-panel-hotkeys-deck/deck) branch. The addon is shared; it already accepts the Deck helper's Ctrl-Shift-F6…F10 signal keys.
 
 Prototype for **WoW Forever on Apple Silicon / macOS 26+**. Uses the English Apple SpeechAnalyzer engine already tested in Local Speech Demo. No TypeWhisper, API key, or cloud transcription.
 
