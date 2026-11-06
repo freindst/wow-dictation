@@ -1,5 +1,7 @@
 # Controller Speech + Local Dictation addon
 
+> **Steam Deck / Linux:** a prototype helper for WoW under Proton is in [`deck/`](deck/README.md). The addon is shared; it also accepts the Deck helper's Ctrl-Shift-F6…F10 signal keys.
+
 Prototype for **WoW Forever on Apple Silicon / macOS 26+**. Uses the English Apple SpeechAnalyzer engine already tested in Local Speech Demo. No TypeWhisper, API key, or cloud transcription.
 
 ## Install and run
@@ -7,10 +9,16 @@ Prototype for **WoW Forever on Apple Silicon / macOS 26+**. Uses the English App
 1. Install the included `LocalDictation` folder in `/Applications/World of Warcraft/_forever_/Interface/AddOns/`. `install-addon.command` performs this copy and refuses to overwrite an existing folder.
 2. Enable **Local Dictation** in WoW's AddOns list. Enable loading out-of-date addons if necessary, then `/reload`. The TOC targets Forever interface 16001; a later client can require updating this number.
 3. Open **Controller Speech.app**, click **Prepare English Model**, and wait for ready.
-4. Connect the controller by Bluetooth/USB. Check the controller name and **Last input** field by pressing buttons while the bridge is disabled. The app uses Apple's native GameController framework.
-5. Choose different **Record / Stop** and **Send** buttons. Defaults are L3 (left stick click) and R3 (right stick click). In WoW, remove other actions from those two buttons. The helper observes input; it cannot prevent the game from also executing an existing binding.
+4. **Set Record / Stop in game:** `/ld keys` → **Record / Stop** slot, then press a key combination (or a WoW gamepad button or combo). Then `/reload`. WoW saves the addon's settings on reload or logout, and the helper reads the binding from `WTF/Account/*/SavedVariables/LocalDictation.lua`. The app shows it under **In-game Record / Stop**. Plain typing keys are refused, because they would start recording while you chat. **Send** is an ordinary addon hotkey (**Send message**) that WoW handles directly, so the helper doesn't need it.
+   - If your controller reaches WoW as keyboard keys through a mapper, bind whatever combination it sends. If you use WoW's own gamepad mode, combos like `SHIFT-PAD1` are converted using WoW's gamepad modifier settings (for example L2 + A).
+   - If you press Record and nothing happens within 1.5 s, the addon says why: a `/reload` is still needed, or the helper isn't running.
+
+   Optional extra triggers in the helper app, for Record / Stop and Send. Each can have a keyboard combination, a controller combination, or both:
+   - **Keyboard** defaults to Control-Option-R (Record / Stop) and Control-Option-S (Send). Click **Change…** and press a new combination (it needs a modifier, or use an F-key). While the bridge is on, the helper takes these keys system-wide, so WoW never sees them and they need no WoW binding.
+   - **Controller:** click **Set combo…**, hold the buttons together (for example L1 + R1 + A), then release them all. The combination fires when its last button goes down. The helper only *observes* controller input, so WoW still gets the buttons: pick a combination WoW doesn't use. A single button works but also runs its normal WoW action.
+5. Why the triggers live in the helper: the addon can't start the microphone or call the app (no sockets), so the helper catches the presses itself. It records and transcribes, then drives the addon with the keys below.
 6. Click **Accessibility…**, then allow **Controller Speech** in System Settings → Privacy & Security → Accessibility. This lets the helper send key combinations and paste into WoW. This is a new app identity, so its microphone permission is also separate from Local Speech Demo.
-7. Enable **controller bridge** and put WoW in front. Keep the helper running in the background.
+7. Enable the **bridge** and put WoW in front. Keep the helper running in the background.
 
 ## Closing the app
 
@@ -18,27 +26,45 @@ Closing the main window quits the app. Quit also stops microphone recording, can
 
 ## Workflow
 
-- Press Record: helper captures the mic and sends an addon recording notification. The addon opens, clears the previous draft, and displays Recording.
+- Press Record (keyboard or controller combination): helper captures the mic and sends an addon recording notification. The addon opens, clears the previous draft, and displays Recording.
 - Press Record again: helper stops capture, transcribes locally and tells the addon to show Transcribing.
 - Once text exists, helper opens/focuses the addon preview, waits the **Preview → paste delay** (default 1 second), replaces the system clipboard with the transcript and issues Command-V.
-- Review the preview and destination. Press the separate Send button: the helper sends the addon Send binding; the addon submits the message, clears the preview and closes the panel.
+- Review the preview and destination, then press the helper's Send combination (keyboard or controller). Enter in the preview, the panel's **Send** button, or the addon's own Send hotkey work too. The addon submits the message, clears the preview and closes the panel.
 - Press Record while a preview exists: cancels any pending paste, starts a fresh recording and clears the draft. Presses during transcription are ignored with a status in the helper.
 
 The delay is a focus/paste settling delay **after the result is available**. It never guesses that recognition has finished. Total stop-to-preview time is recognition latency plus this delay. The measurement list reports recognition only.
 
-## Channel and whisper recipient
+## Addon panel
 
-Default channel is Party. Click the channel button in the addon to cycle Say → Party → Raid → Instance → Guild → Whisper. For controller-only channel cycling, bind **Next dictation channel** under Key Bindings → Local Dictation to a spare controller button. Bind **Cancel / close dictation preview** similarly if desired.
+- **Status line:** a colored dot shows idle, recording, transcribing, ready or error.
+- **Channel row:** Say, Party, Raid, Instance, Guild or Whisper. The selected channel is highlighted, and channels you can't use right now (no party or guild) are greyed out, with a tooltip explaining why.
+- **Whisper target:** type Name or Name-Realm, or click **Friends…** to pick from your character friends, Battle.net friends (sent with a Battle.net whisper) and recent whispers. It has search, shows online friends first with class colors, and offline friends are disabled.
+- **Message preview:** an editable text box with a 255-byte counter that turns orange, then red. Enter sends and Esc closes.
+- **Controller navigation (WoW gamepad mode):** while the panel is open, the D-pad, A, B and Y act on the panel. D-pad left/right changes channel; up/down changes the whisper target, or moves through the open friend list. A sends (or picks the highlighted friend), B closes (or leaves the list), X clears the message, Y opens or closes the friend list. Esc and the list's own close button also close only the friend list. These are temporary override bindings: they apply only while the panel is shown, and they're released as combat starts, so the buttons keep their normal game actions in a fight. Turn it off with `/ld pad off`.
+- **Hotkeys:** opens an editor with two key slots per action. Click a slot and press a keyboard key, mouse button 3–5 or gamepad button; right-click a slot to clear it. Bindings are saved to WoW's binding set and also appear under Key Bindings → AddOns → Local Dictation. Control-Shift-F13…F17 are reserved for the helper.
+
+| Hotkey action | Effect |
+|---|---|
+| Open / close panel | Toggle the panel for typing or checking the destination |
+| Send message | Submit the preview |
+| Next / Previous channel | Cycle channels (works with the panel closed) |
+| Next whisper target | Cycle online friends and recent whispers |
+| Pick from friends | Open the panel with the friend picker |
+| Clear message | Empty the preview |
+| Cancel / close | Close and clear |
+
+Hotkeys with a modifier, or keys like F-keys, also work while the preview has text focus. Plain letter keys stay normal typing there.
 
 Preset commands:
 
 - `/ld channel party` (also say, raid, instance, guild, whisper)
 - `/ld whisper FriendName-Realm`
+- `/ld friends` (friend picker), `/ld keys` (hotkey editor), `/ld freekeys` (lists free keyboard keys and controller combos; flags combos whose plain key has a game action, because WoW falls back to the plain key when a combo is unbound)
 - `/ld status`
 - `/ld close`
 - `/ld` opens an empty preview for a manual paste test.
 
-The whisper recipient field can be edited in the addon; set it once before a controller session. This prototype does not yet provide a controller friend-picker. Channel and target are stored in normal SavedVariables, subject to the client's persistence behavior. Reapply the preset if the beta client resets settings.
+Channel, whisper target, recent whispers and panel position are stored in normal SavedVariables, subject to the client's persistence behavior. Reapply the preset if the beta client resets settings.
 
 Messages are limited to 255 bytes. Oversize messages remain in preview with an error so they can be edited; there is no automatic splitting.
 
@@ -76,4 +102,4 @@ Native app compilation and bundle validation are checked during build. Actual co
 
 Local recognition uses Apple's system-managed English model. Initial model downloads can use Apple's network services. Microphone clips are temporary and removed after processing. The app replaces the clipboard with the transcript and keeps text/measurements in memory; JSON export includes transcript text. It does not read game memory or automatically send chat after transcription. Send is a separate controller action.
 
-Swift source is separated into app lifecycle (`App.swift`), speech capture/recognition (`LocalSpeech.swift`), controller bridge (`ControllerBridge.swift`), and views (`ContentView.swift`, `BridgeView.swift`). Lua/XML source is in `LocalDictation/`. `build.command` rebuilds and ad-hoc signs the helper. The application is not notarized for redistribution.
+Swift source is separated into app lifecycle (`App.swift`), speech capture/recognition (`LocalSpeech.swift`), controller and keyboard bridge (`ControllerBridge.swift`, `GlobalHotKey.swift`), and views (`ContentView.swift`, `BridgeView.swift`). Lua/XML source is in `LocalDictation/`. `build.command` rebuilds and ad-hoc signs the helper. The application is not notarized for redistribution.

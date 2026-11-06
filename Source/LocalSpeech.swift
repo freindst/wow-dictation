@@ -55,6 +55,13 @@ struct Measurement: Identifiable {
             status = "English model ready · fully on-device · Start Recording or open an audio file."
         } catch { status = "Setup failed: \(error.localizedDescription)" }
     }
+    /// Loads the model at launch only if it is already installed (never starts a download).
+    func prepareIfInstalled() async {
+        guard !ready, !busy, SpeechTranscriber.isAvailable,
+              let locale = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: "en-US")) else { return }
+        let state = await AssetInventory.status(forModules: [SpeechTranscriber(locale: locale, preset: .transcription)])
+        if state == .installed { await prepare() }
+    }
     func failure(_ message: String) -> NSError { NSError(domain: "LocalSpeechDemo", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
     func start() async {
         guard ready, !busy, !recording else { return }

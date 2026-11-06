@@ -27,3 +27,7 @@ DerivedData/
 
 # Local GitHub credential
 /git_token
+
+# Python
+__pycache__/
+*.pyc

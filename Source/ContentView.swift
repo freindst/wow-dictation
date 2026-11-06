@@ -35,6 +35,6 @@ struct ContentView: View {
                 }.padding(.vertical, 5)
             }.frame(height: 160)
             Text("Transcription starts after Stop. Timing includes audio finalization and full-clip processing; it excludes speaking time and WoW delivery. First use may be slower. Recording is temporary and removed after processing. No live text while recording.").font(.caption).foregroundStyle(.secondary)
-        }.padding(24) }.frame(minWidth: 860, minHeight: 780).onAppear { bridge.attach(b) }
+        }.padding(24) }.frame(minWidth: 860, minHeight: 780).onAppear { bridge.attach(b); Task { await b.prepareIfInstalled() } }
     }
 }
