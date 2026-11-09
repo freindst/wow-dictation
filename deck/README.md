@@ -29,26 +29,39 @@ Steam Input chord ──► Ctrl+Shift+F12 ──► Ctrl+Shift+F9 ──► add
 
 The helper is plain Python 3 with no extra packages, because SteamOS has no compiler for pip packages.
 
-## Install (Desktop Mode, Konsole)
+## Install yourself in Desktop Mode
 
-1. Copy the `deck/` folder to the Deck (for example `~/wow-dictation/deck`).
-2. If you haven't already, set a sudo password with `passwd`. Then grant input access once, and log out and back in:
+The setup wizard installs the helper, English model, WoW addon, background service and a **Local Dictation Controls** desktop/application-menu launcher. A code agent is not required. Initial setup needs internet access, a sudo password and Distrobox (or an existing native C++ compiler). Whisper is compiled automatically during setup. This installer has shell validation and helper unit tests, but still needs a real Steam Deck installation test.
+
+1. On the Deck, switch to Desktop Mode and open Firefox.
+2. Download the [installer branch ZIP](https://github.com/freindst/wow-dictation/archive/refs/heads/deck-self-service-install.zip) and extract the entire archive using the file manager.
+3. Open the extracted **deck** folder. Right-click inside the folder and choose **Open Terminal Here**. Run this one command in Konsole.
+
    ```bash
-   ./install.sh --permissions
+   bash setup.sh
    ```
-   This adds you to the `input` group (to read key presses) and lets that group use `/dev/uinput` (to type). It writes one udev rule to `/etc`, which SteamOS keeps across updates.
-3. Install the helper, build whisper.cpp and download the model:
-   ```bash
-   ./install.sh
-   ```
-   SteamOS has no compiler, so the script builds whisper.cpp inside a temporary `distrobox` Ubuntu container. That takes several minutes the first time. Use `--model small.en` for better accuracy (slower) or `--model tiny.en` for speed.
-4. Start it and watch the log:
-   ```bash
-   systemctl --user restart local-dictation
-   ```
-   ```bash
-   journalctl --user -u local-dictation -f
-   ```
+
+4. Select your WoW client folder in the folder picker. This is the folder containing **Interface** and **WTF**, such as `_forever_`. If no picker is available, the terminal asks for the full path. Confirm installation, then supply your sudo password when input access is requested. If no sudo password is configured, run `passwd` first and rerun setup.
+5. Wait for the Whisper build and model download. The wizard installs the addon, backs up an existing LocalDictation addon, and creates **Local Dictation Controls** on the Desktop and application menu. It reports dependency failures in the terminal. Rerun the installer after addressing the error.
+6. Reboot if the wizard requests it. The service is enabled for login. Open **Local Dictation Controls** and choose **Status** or **Diagnostics** to check it.
+7. In WoW, enable **Local Dictation**, reload the UI, and map your two Steam Input buttons as described below. Return to Gaming Mode and launch WoW.
+
+The addon folder is installed automatically. You still choose Steam Input bindings yourself because the installer does not edit your existing controller layout.
+
+Use **Local Dictation Controls** to start, stop, inspect logs, run diagnostics or disable start at login. Exiting the controls window leaves the background service running. Choose **Stop helper** or **Disable start at login and stop** to stop dictation.
+
+For a terminal check in either Desktop Mode or SSH, run the following commands.
+
+```bash
+systemctl --user status local-dictation --no-pager
+python3 ~/.local/share/local-dictation/ld_helper.py --check
+```
+
+### Lower-level installation
+
+`install.sh` still supports scripted installation. `--permissions` grants the current user input/uinput access and needs a reboot or full logout. `--model tiny.en`, `--model base.en` and `--model small.en` control which model is downloaded for a fresh configuration. Existing configuration is preserved. The wizard uses Base English by default.
+
+Everything except the input udev rule and group membership is installed in your home folder. The rule uses group permissions for input events and the virtual keyboard. It requires sudo. No changes to Steam's read-only system image are part of the installer.
 
 ## Record / Stop key from the addon
 

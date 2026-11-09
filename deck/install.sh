@@ -20,17 +20,24 @@ do_permissions=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --permissions) do_permissions=1 ;;
-    --model) model="$2"; shift ;;
+    --model) [[ $# -ge 2 ]] || { echo "--model needs tiny.en, base.en, or small.en"; exit 2; }; model="$2"; shift ;;
     *) echo "unknown option: $1"; exit 2 ;;
   esac
   shift
 done
+
+case "$model" in tiny.en|base.en|small.en) ;; *) echo "Unsupported model: $model"; exit 2 ;; esac
+if [[ "$(uname -s)" != Linux || "$(uname -m)" != x86_64 ]]; then
+  echo 'This installer requires x86_64 Linux.'
+  exit 1
+fi
 
 if [[ $do_permissions -eq 1 ]]; then
   echo "Granting $USER read access to input devices and write access to /dev/uinput (sudo)…"
   sudo tee /etc/udev/rules.d/60-local-dictation-uinput.rules >/dev/null <<'RULE'
 KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
 RULE
+  sudo modprobe uinput
   sudo usermod -aG input "$USER"
   sudo udevadm control --reload-rules
   sudo udevadm trigger --name-match=uinput || true
@@ -53,12 +60,14 @@ if [[ ! -x "$server_bin" ]]; then
   if [[ ! -d "$data/whisper.cpp" ]]; then
     git clone --depth 1 --branch "$whisper_ref" https://github.com/ggml-org/whisper.cpp.git "$data/whisper.cpp"
   fi
-  build_cmd="cd '$data/whisper.cpp' && cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF && cmake --build build -j 4 --target whisper-server"
+  build_cmd="cd '$data/whisper.cpp' && cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF '-DCMAKE_EXE_LINKER_FLAGS=-static-libstdc++ -static-libgcc' && cmake --build build -j 4 --target whisper-server"
   if command -v cmake >/dev/null && command -v c++ >/dev/null; then
     bash -c "$build_cmd"
   elif command -v distrobox >/dev/null; then
     # SteamOS has no compiler; build inside a throwaway container (static binary runs on the host).
-    distrobox create --yes --name ld-build --image docker.io/library/ubuntu:22.04 >/dev/null 2>&1 || true
+    if ! distrobox list --no-color | awk -F '|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' | grep -qx ld-build; then
+      distrobox create --yes --name ld-build --image docker.io/library/ubuntu:22.04
+    fi
     distrobox enter ld-build -- bash -c "sudo apt-get update -qq && sudo apt-get install -y -qq build-essential cmake git >/dev/null && $build_cmd"
   else
     echo "Need cmake + a C++ compiler, or distrobox, to build whisper.cpp."
@@ -66,6 +75,9 @@ if [[ ! -x "$server_bin" ]]; then
     exit 1
   fi
 fi
+
+# Verify the compiled executable can load its runtime libraries on the host.
+"$server_bin" --help >/dev/null
 
 # --- model ---------------------------------------------------------------
 model_file="$data/models/ggml-$model.bin"
@@ -81,10 +93,11 @@ systemctl --user daemon-reload
 systemctl --user enable local-dictation.service
 
 echo
-python3 "$data/ld_helper.py" --check || {
+if ! python3 "$data/ld_helper.py" --check; then
   echo
-  echo "Some checks failed. If it is the input/uinput permissions, run: $0 --permissions, then log out and in."
-}
+  echo "Files installed, but diagnostics failed. Resolve the reported issue before starting the service."
+  exit 3
+fi
 echo
 echo "Start now:      systemctl --user restart local-dictation"
 echo "Follow the log: journalctl --user -u local-dictation -f"
